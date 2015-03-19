@@ -249,7 +249,6 @@ public class PicuDataLoader {
 			            buff.append(StringUtils.capitalize(i));
 			        }
 
-					seriesName = "vitals." + StringUtils.uncapitalize(buff.toString());
 					String measurementValue = Terser.get(observation.getOBX(), 5, 0, 1, 1);
 					String units = Terser.get(observation.getOBX(), 6, 0, 1, 1);
 					if (units != null) {
@@ -260,7 +259,8 @@ public class PicuDataLoader {
 						units = units.replaceAll("cel", "Celsius");
 						units = units.replaceAll("mm\\(hg\\)", "mmHg");
 					}
-					seriesName += "." + StringUtils.uncapitalize(units);
+					seriesName = "vitals." + StringUtils.uncapitalize(units);
+					seriesName += "." + StringUtils.uncapitalize(buff.toString());
 					if (!variables.contains(seriesName))
 						variables.add(seriesName);
 					IncomingDataPoint dataPoint = new IncomingDataPoint(seriesName, timepoint.getTime(), measurementValue, tags);
