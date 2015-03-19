@@ -70,7 +70,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.cvrgrid.hl7.fileparse.model.HL7Measurements;
 import edu.jhu.cvrg.timeseriesstore.model.IncomingDataPoint;
-import edu.jhu.cvrg.timeseriesstore.opentsdb.store.OpenTSDBTimeSeriesStorer;
+import edu.jhu.cvrg.timeseriesstore.opentsdb.TimeSeriesStorer;
 
 import org.cvrgrid.hl7.fileparse.model.OpenTSDBConfiguration;
 import org.cvrgrid.hl7.fileparse.model.PatientInfo;
@@ -264,7 +264,7 @@ public class PicuDataLoader {
 					if (!variables.contains(seriesName))
 						variables.add(seriesName);
 					IncomingDataPoint dataPoint = new IncomingDataPoint(seriesName, timepoint.getTime(), measurementValue, tags);
-					OpenTSDBTimeSeriesStorer.storeTimePoint(urlString, dataPoint);
+					TimeSeriesStorer.storeTimePoint(urlString, dataPoint);
 				}
 				patInfo.setLocations(locations);
 				patInfo.setVariables(variables);
