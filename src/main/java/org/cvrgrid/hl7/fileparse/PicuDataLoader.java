@@ -69,6 +69,7 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.cvrgrid.hl7.fileparse.model.HL7Measurements;
+
 import edu.jhu.cvrg.timeseriesstore.model.IncomingDataPoint;
 import edu.jhu.cvrg.timeseriesstore.opentsdb.TimeSeriesStorer;
 
@@ -119,10 +120,10 @@ public class PicuDataLoader {
 
 	public static void main(String[] args) throws Exception {
 
-		PicuDataLoader hashMaster = new PicuDataLoader();
+		PicuDataLoader picuDataLoader = new PicuDataLoader();
 		SimpleDateFormat fromUser = new SimpleDateFormat("yyyyMMddHHmmss");
 		SimpleDateFormat myFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		OpenTSDBConfiguration openTSDBConfiguration = hashMaster.getOpenTSDBConfiguration();
+		OpenTSDBConfiguration openTSDBConfiguration = picuDataLoader.getOpenTSDBConfiguration();
 		String urlString = openTSDBConfiguration.getOpenTSDBUrl();
 		HL7Measurements hl7Measurements = new HL7Measurements();
 		HashMap<String,String> measurementNames = hl7Measurements.getMeasurementNames();
@@ -133,7 +134,10 @@ public class PicuDataLoader {
 			if (row == null) {
 				continue;
 			}
-			measurementNames.put(row.getCell(2).getStringCellValue(), row.getCell(1).getStringCellValue());
+			String key = row.getCell(2).getStringCellValue();
+			String value = row.getCell(1).getStringCellValue();
+			value = value.replaceAll(":", "/");
+			measurementNames.put(key, value);
 		}
 		HashMap<String,PatientInfo> idMatch = new HashMap<String,PatientInfo>();
 		File f = new File(openTSDBConfiguration.getIdMatch());
@@ -156,7 +160,7 @@ public class PicuDataLoader {
 				lSet = lSet.replaceAll("\\]", "");				
 				String[] locationSet = lSet.split(",");
 				for (String location : locationSet) {
-					locations.add(location);
+					locations.add(location.trim());
 				}
 				patInfo.setLocations(locations);
 				LinkedList<String> variables = new LinkedList<String>();
@@ -165,7 +169,7 @@ public class PicuDataLoader {
 				vSet = vSet.replaceAll("\\]", "");				
 				String[] variableSet = vSet.split(",");
 				for (String variable : variableSet) {
-					variables.add(variable);
+					variables.add(variable.trim());
 				}
 				patInfo.setVariables(variables);
 				idMatch.put(patInfo.getHash(),patInfo);
@@ -246,23 +250,37 @@ public class PicuDataLoader {
 
 			        String[] tokens = seriesName.split(" ");
 			        for (String i : tokens) {
+						i = i.replaceAll("\\(", "");
+						i = i.replaceAll("\\)", "");						
 			            buff.append(StringUtils.capitalize(i));
 			        }
 
 					String measurementValue = Terser.get(observation.getOBX(), 5, 0, 1, 1);
 					String units = Terser.get(observation.getOBX(), 6, 0, 1, 1);
 					if (units != null) {
+						units = units.replaceAll(":", "");
+						units = units.replaceAll("cm_h2o", "cmH2O");
+						units = units.replaceAll("\\(min/m2\\)", "MinPerMeterSquared");
+						units = units.replaceAll("l", "liters");
+						units = units.replaceAll("mliters", "milliliters");
+						units = units.replaceAll("g.m", "gramMeters");
+						units = units.replaceAll("dyn.sec.cm-5", "dyneSecondsPerQuinticCentimeter");
+						units = units.replaceAll("dyneSecondsPerQuinticCentimeter.m2", "dyneSecondsPerQuinticCentimeterPerMeterSquared");
+						units = units.replaceAll("m2", "MeterSquared");
 						units = units.replaceAll("min", "Min");
 						units = units.replaceAll("/", "Per");
 						units = units.replaceAll("%", "percent");
 						units = units.replaceAll("#", "Count");
-						units = units.replaceAll("cel", "Celsius");
+						units = units.replaceAll("celiters", "Celsius");
 						units = units.replaceAll("mm\\(hg\\)", "mmHg");
+					} else {
+						units = "percent";
 					}
 					seriesName = "vitals." + StringUtils.uncapitalize(units);
 					seriesName += "." + StringUtils.uncapitalize(buff.toString());
-					if (!variables.contains(seriesName))
-						variables.add(seriesName);
+					seriesName = seriesName.trim();
+					if (!variables.contains(StringUtils.uncapitalize(buff.toString())))
+						variables.add(StringUtils.uncapitalize(buff.toString()));
 					IncomingDataPoint dataPoint = new IncomingDataPoint(seriesName, timepoint.getTime(), measurementValue, tags);
 					TimeSeriesStorer.storeTimePoint(urlString, dataPoint);
 				}
